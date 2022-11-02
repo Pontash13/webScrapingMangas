@@ -42,7 +42,7 @@ label_resultados = Label()
 label_resultados.config(font=("Arial MT", 11))
 label_resultados.config(text="\nResultados:")
 label_resultados.pack()
-
+#
 #cria uma lista para mostrar os resultados
 lista = Listbox(root, width=50)
 lista.pack()
