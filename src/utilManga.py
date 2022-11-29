@@ -1,5 +1,6 @@
 import requests
 import bs4
+from AnilistPython import Anilist
 
 #definicao de variaveis globais
 url_site = "https://unionleitor.top/"
@@ -46,3 +47,16 @@ def baixa_paginas(paginas):
         response = requests.get(paginas[pagina])
         with open('cache/' + pagina + '.jpg', 'wb') as f:
             f.write(response.content)
+
+def baixa_capa(manga_nome):
+    anilist = Anilist()
+    capa_link = anilist.get_manga(manga_nome)['cover_image']
+    response = requests.get(capa_link)
+    with open('cache/cover.jpg', 'wb') as f:
+        f.write(response.content)
+
+#obtem de uma api informações sobre o manga para criar o epub
+def obtem_infos_manga(manga_nome):
+    anilist = Anilist()
+    infos_manga = anilist.get_manga(manga_nome)
+    return infos_manga

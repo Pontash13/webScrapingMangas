@@ -1,11 +1,15 @@
+import threading
 from tkinter import *
-from src import utilManga
+from src import utilManga, utilFormatt, utilSystem
 
 class App:
 
     #consts para manipulacao
     mangas_encontrados = {}
     capitulos_encontrados = {}
+    manga_selecionado = ""
+    infos_manga = None
+    link_manga = ""
 
     def __init__(self):
         self.root = Tk()
@@ -16,7 +20,7 @@ class App:
         #cria o menu
         self.menu = Menu(self.root)
         self.root.config(menu=self.menu)
-        self.menu.add_command(label="Confirações")
+        self.menu.add_command(label="Configurações")
         self.menu.add_command(label="Sobre")
 
         #cria um label
@@ -65,8 +69,19 @@ class App:
         self.botao_baixar_capitulos.config(font=("Arial", 12))
         self.botao_baixar_capitulos["bg"] = "green"
 
+        #cria o botão para selecionar todos os capitulos
+        self.botao_selecionar_tudo = Button(self.root, text="Selecionar todos", command=lambda: self.selecionar_todos())
+        #ao clicar no botão seleciona todos os capitulos
+        self.botao_selecionar_tudo.config(font=("Arial", 12))
+        self.botao_selecionar_tudo["bg"] = "blue"
+
+
 
     #funções do programa
+
+    def selecionar_todos(self):
+        self.lista_capitulos.select_set(0, END)
+
     def procura_manga(self, nome):
         self.mangas_encontrados = utilManga.procura_manga(nome)
         self.lista_mangas.delete(0, END)
@@ -74,8 +89,11 @@ class App:
             self.lista_mangas.insert(END, manga)
 
     def procura_capitulos(self, nome):
-        selecionado = self.mangas_encontrados[list(self.mangas_encontrados.keys())[nome[0]]]
-        self.capitulos_encontrados = utilManga.procura_capitulos(selecionado)
+        self.manga_selecionado = (list(self.mangas_encontrados.keys())[nome[0]])
+        self.infos_manga = utilManga.obtem_infos_manga(self.manga_selecionado)
+        print(self.manga_selecionado)
+        self.link_manga = self.mangas_encontrados[list(self.mangas_encontrados.keys())[nome[0]]]
+        self.capitulos_encontrados = utilManga.procura_capitulos(self.link_manga)
         self.lista_mangas.delete(0, END)
 
         #desfaço os label e lista
@@ -86,14 +104,47 @@ class App:
         self.label_capitulos.pack()
         self.lista_capitulos.pack()
         self.botao_baixar_capitulos.pack()
+        self.botao_selecionar_tudo.pack()
 
         for capitulo in self.capitulos_encontrados:
             self.lista_capitulos.insert(END, capitulo)
 
 
+    def baixar_capitulos(self):
+        #cria um thread para baixar os capitulos
+        thread = threading.Thread(target=self.baixar_capitulos_thread)
+        thread.start()
+
+    def baixar_capitulos_thread(self):
+        # inativar o botão de baixar
+        self.botao_baixar_capitulos["state"] = "disabled"
+        # inativar o botão de selecionar todos
+        self.botao_selecionar_tudo["state"] = "disabled"
+        # inativar a lista de capitulos
+        self.lista_capitulos["state"] = "disabled"
+
+        #pega os capitulos selecionados na lista
+        selecionados = self.lista_capitulos.curselection()
+
+        for selecionado in selecionados:
+            utilSystem.limpa_pasta('cache')
+            utilManga.baixa_capa(self.manga_selecionado)
+            paginas = utilManga.procura_paginas(self.capitulos_encontrados[list(self.capitulos_encontrados.keys())[selecionado]])
+            utilManga.baixa_paginas(paginas)
+            nome_capitulo = list(self.capitulos_encontrados.keys())[selecionado]
+            #transorma em um epub
+            utilFormatt.cria_epub(self.infos_manga, nome_capitulo)
 
 
-    def run(self):
+        #ativa o botão de baixar
+        self.botao_baixar_capitulos["state"] = "normal"
+        #ativa o botão de selecionar todos
+        self.botao_selecionar_tudo["state"] = "normal"
+        #ativa a lista de capitulos
+        self.lista_capitulos["state"] = "normal"
+
+
+    def run(self): #inicia o programa
         self.root.mainloop()
 
 
