@@ -1,10 +1,11 @@
 import random
-import re
+import string
 from pathlib import Path
 from ebooklib import epub
+from src import utilSystem
 
 #todo corrigir esse caminho chumbado
-pasta_cache = 'C:\\Users\\alyss\\PycharmProjects\\pythonProject\\cache'
+#cria pasta temporaria
 
 
 #Le os arquivos da pasta temporaria e devolve uma lista
@@ -19,10 +20,9 @@ def ler_arquivos_pasta_temp(pasta):
     return images
 
 
-
-def cria_epub(manga_infos, cap):
+def cria_epub(manga_infos, cap, pasta_capitulo):
     list_capitulos = []
-    imagens = ler_arquivos_pasta_temp(pasta_cache)
+    imagens = ler_arquivos_pasta_temp(pasta_capitulo)
 
 
     book = epub.EpubBook()
@@ -33,7 +33,7 @@ def cria_epub(manga_infos, cap):
     book.add_author('Gera_epub_python')
 
     # add cover image
-    book.set_cover("cover.jpg", open(pasta_cache + '\\cover.jpg', 'rb').read())
+    book.set_cover("cover.jpg", open(pasta_capitulo + '\\cover.jpg', 'rb').read())
     book.set_direction('rtl')
 
 
@@ -67,6 +67,8 @@ def cria_epub(manga_infos, cap):
 
 
 
-    epub.write_epub(manga_infos['name_english'] + '_' + cap + '.epub', book, {})
+    print(utilSystem.pasta_documentos() + '\\Mangas\\' + manga_infos['name_english'] + '\\' + cap + '.epub')
+    utilSystem.cria_pasta(utilSystem.pasta_documentos() + '\\Mangas\\' + manga_infos['name_english'])
+    epub.write_epub(utilSystem.pasta_documentos() + '\\Mangas\\' + manga_infos['name_english'] + '\\' + cap + '.epub', book, {})
 
 

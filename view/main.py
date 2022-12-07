@@ -11,11 +11,17 @@ class App:
     infos_manga = None
     link_manga = ""
 
+    # constante para a tela de carregando
+    root_carregando = None
+
     def __init__(self):
         self.root = Tk()
         self.root.title("Mangas Downloader")
-        self.root.geometry("600x500")
+        self.root.geometry("400x450")
         self.root.resizable(False, False)
+        # criar no meio da tela
+        self.root.eval('tk::PlaceWindow . center')
+
 
         #cria o menu
         self.menu = Menu(self.root)
@@ -79,36 +85,70 @@ class App:
 
     #funções do programa
 
+    def alerta_carregando(self):
+        self.root = Tk()
+        #retira a barra de titulo
+        self.root.overrideredirect(True)
+        self.root.geometry("200x100")
+        self.root.resizable(False, False)
+        self.root.title("...")
+        #criar no meio da tela
+        self.root.eval('tk::PlaceWindow . center')
+
+        self.label_carregando = Label(self.root, text="Carregando...")
+        self.label_carregando.config(font=("Arial", 20))
+        self.label_carregando.pack()
+
+
+        return self.root
+
+
+
+
     def selecionar_todos(self):
         self.lista_capitulos.select_set(0, END)
 
     def procura_manga(self, nome):
+
+        #cria uma nova janela para mostrar que está carregando
+        self.root_carregando= self.alerta_carregando()
+
+
+        #cria uma thread para não travar a interface
+        thread = threading.Thread(target=self.procura_manga_thread, args=(nome,))
+        thread.daemon = True
+        thread.start()
+
+
+    def procura_manga_thread(self, nome):
         self.mangas_encontrados = utilManga.procura_manga(nome)
         self.lista_mangas.delete(0, END)
         for manga in self.mangas_encontrados:
             self.lista_mangas.insert(END, manga)
 
+        #fecha a janela de carregando
+        self.root_carregando.destroy()
+
+
     def procura_capitulos(self, nome):
-        self.manga_selecionado = (list(self.mangas_encontrados.keys())[nome[0]])
-        self.infos_manga = utilManga.obtem_infos_manga(self.manga_selecionado)
-        print(self.manga_selecionado)
-        self.link_manga = self.mangas_encontrados[list(self.mangas_encontrados.keys())[nome[0]]]
-        self.capitulos_encontrados = utilManga.procura_capitulos(self.link_manga)
-        self.lista_mangas.delete(0, END)
+            self.manga_selecionado = (list(self.mangas_encontrados.keys())[nome[0]])
+            self.infos_manga = utilManga.obtem_infos_manga(self.manga_selecionado)
+            self.link_manga = self.mangas_encontrados[list(self.mangas_encontrados.keys())[nome[0]]]
+            self.capitulos_encontrados = utilManga.procura_capitulos(self.link_manga)
+            self.lista_mangas.delete(0, END)
 
-        #desfaço os label e lista
-        self.lista_mangas.pack_forget()
-        self.label_mangas_encontrados.pack_forget()
+            #desfaço os label e lista
+            self.lista_mangas.pack_forget()
+            self.label_mangas_encontrados.pack_forget()
 
-        #crio os novos label e lista
-        self.label_capitulos.pack()
-        self.lista_capitulos.pack()
-        self.botao_baixar_capitulos.pack()
-        self.botao_selecionar_tudo.pack()
+            #crio os novos label e lista
+            self.label_capitulos.pack()
+            self.lista_capitulos.pack()
+            self.botao_baixar_capitulos.pack()
+            self.botao_selecionar_tudo.pack()
 
-        for capitulo in self.capitulos_encontrados:
-            self.lista_capitulos.insert(END, capitulo)
-
+            for capitulo in self.capitulos_encontrados:
+                self.lista_capitulos.insert(END, capitulo)
 
     def baixar_capitulos(self):
         #cria um thread para baixar os capitulos
@@ -127,13 +167,18 @@ class App:
         selecionados = self.lista_capitulos.curselection()
 
         for selecionado in selecionados:
-            utilSystem.limpa_pasta('cache')
-            utilManga.baixa_capa(self.manga_selecionado)
+            pasta_cache = utilSystem.pasta_atual()
+            pasta_temp = utilSystem.gerar_nome_aleatorio() #nome aleatorio para a pasta
+            pasta_capitulo = pasta_cache + '\\cache\\' + pasta_temp
+
+            utilSystem.cria_pasta(pasta_capitulo) #cria a pasta
+            utilManga.baixa_capa(self.manga_selecionado, pasta_capitulo)
             paginas = utilManga.procura_paginas(self.capitulos_encontrados[list(self.capitulos_encontrados.keys())[selecionado]])
-            utilManga.baixa_paginas(paginas)
+            utilManga.baixa_paginas(paginas, pasta_capitulo)
             nome_capitulo = list(self.capitulos_encontrados.keys())[selecionado]
             #transorma em um epub
-            utilFormatt.cria_epub(self.infos_manga, nome_capitulo)
+            utilFormatt.cria_epub(self.infos_manga, nome_capitulo, pasta_capitulo)
+            utilSystem.limpa_pasta(pasta_capitulo) #limpa a pasta
 
 
         #ativa o botão de baixar
@@ -142,7 +187,6 @@ class App:
         self.botao_selecionar_tudo["state"] = "normal"
         #ativa a lista de capitulos
         self.lista_capitulos["state"] = "normal"
-
 
     def run(self): #inicia o programa
         self.root.mainloop()

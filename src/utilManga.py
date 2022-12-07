@@ -42,17 +42,17 @@ def procura_paginas(capitulo):
 
     return dict_paginas
 
-def baixa_paginas(paginas):
+def baixa_paginas(paginas, pasta_cache):
     for pagina in paginas:
         response = requests.get(paginas[pagina])
-        with open('cache/' + pagina + '.jpg', 'wb') as f:
+        with open(pasta_cache + '\\' + pagina + '.jpg', 'wb') as f:
             f.write(response.content)
 
-def baixa_capa(manga_nome):
+def baixa_capa(manga_nome, pasta_cache):
     anilist = Anilist()
     capa_link = anilist.get_manga(manga_nome)['cover_image']
     response = requests.get(capa_link)
-    with open('cache/cover.jpg', 'wb') as f:
+    with open(pasta_cache + '\\cover.jpg', 'wb') as f:
         f.write(response.content)
 
 #obtem de uma api informações sobre o manga para criar o epub
